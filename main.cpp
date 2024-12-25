@@ -1,5 +1,20 @@
-#include <iostream>
+#include <GLFW/glfw3.h>
 
-int main(int, char**){
-    std::cout << "Hello, from build-an-app-with-webgpu!\n";
+const uint32_t kWidth = 512;
+const uint32_t kHeight = 512;
+
+void Start() {
+  if (!glfwInit()) {
+    return;
+  }
+
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  GLFWwindow* window =
+      glfwCreateWindow(kWidth, kHeight, "WebGPU window", nullptr, nullptr);
+
+  while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
+  }
 }
+
+int main() { Start(); }
