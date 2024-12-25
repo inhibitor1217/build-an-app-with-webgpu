@@ -1,6 +1,10 @@
 #include <GLFW/glfw3.h>
 #include <webgpu/webgpu_cpp.h>
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#else
 #include <webgpu/webgpu_glfw.h>
+#endif
 
 #include <iostream>
 
@@ -29,7 +33,7 @@ void GetAdapter(void (*callback)(wgpu::Adapter)) {
   instance.RequestAdapter(
       nullptr,
       [](WGPURequestAdapterStatus status, WGPUAdapter cAdapter,
-         WGPUStringView message, void* userdata) {
+         const char* message, void* userdata) {
         if (status != WGPURequestAdapterStatus_Success) {
           exit(0);
         }
@@ -43,7 +47,7 @@ void GetDevice(void (*callback)(wgpu::Device)) {
   adapter.RequestDevice(
       nullptr,
       [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
-         WGPUStringView message, void* userdata) {
+         const char* message, void* userdata) {
         wgpu::Device device = wgpu::Device::Acquire(cDevice);
         reinterpret_cast<void (*)(wgpu::Device)>(userdata)(device);
       },
@@ -112,16 +116,28 @@ void Start() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   GLFWwindow* window =
       glfwCreateWindow(kWidth, kHeight, "WebGPU window", nullptr, nullptr);
+
+#if defined(__EMSCRIPTEN__)
+  wgpu::SurfaceDescriptorFromCanvasHTMLSelector canvasDesc{};
+  canvasDesc.selector = "#canvas";
+  wgpu::SurfaceDescriptor surfaceDesc{.nextInChain = &canvasDesc};
+  surface = instance.CreateSurface(&surfaceDesc);
+#else
   surface = wgpu::glfw::CreateSurfaceForWindow(instance, window);
+#endif
 
   InitGraphics();
 
+#if defined(__EMSCRIPTEN__)
+  emscripten_set_main_loop(Render, 0, false);
+#else
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     Render();
     surface.Present();
     instance.ProcessEvents();
   }
+#endif
 }
 
 int main() {
